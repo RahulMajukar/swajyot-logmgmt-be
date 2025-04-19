@@ -29,4 +29,6 @@ public interface InspectionFormRepository extends JpaRepository<InspectionForm, 
     List<InspectionForm> findByInspectionDateBetween(LocalDate startDate, LocalDate endDate);
 
     List<InspectionForm> findByDocumentNoStartingWith(String documentNoPrefix);
+    
+    List<InspectionForm> findByFormType(InspectionForm.FormType formType);
 }

@@ -13,7 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,6 +51,13 @@ public class InspectionFormService {
 
     public List<InspectionForm> getFormsByDateRange(LocalDate startDate, LocalDate endDate) {
         return inspectionFormRepository.findByInspectionDateBetween(startDate, endDate);
+    }
+    
+    /**
+     * Get forms by form type (COATING or PRINTING)
+     */
+    public List<InspectionForm> getFormsByType(InspectionForm.FormType formType) {
+        return inspectionFormRepository.findByFormType(formType);
     }
 
     /**
@@ -124,6 +131,20 @@ public class InspectionFormService {
         if (form.getIssuanceNo() == null || form.getIssuanceNo().isEmpty()) {
             form.setIssuanceNo("00");
         }
+        
+        // Set default scope and title based on form type if not provided
+        if (form.getFormType() != null && (form.getScope() == null || form.getScope().isEmpty())) {
+            switch (form.getFormType()) {
+                case COATING:
+                    form.setScope("AGI / DEC / COATING");
+                    form.setTitle("FIRST ARTICLE INSPECTION REPORT - COATING");
+                    break;
+                case PRINTING:
+                    form.setScope("AGI / DEC / PRINTING");
+                    form.setTitle("FIRST ARTICLE INSPECTION REPORT - PRINTING");
+                    break;
+            }
+        }
 
         return inspectionFormRepository.save(form);
     }
@@ -149,8 +170,6 @@ public class InspectionFormService {
         existingForm.setLineNo(updatedForm.getLineNo());
         existingForm.setCustomer(updatedForm.getCustomer());
         existingForm.setSampleSize(updatedForm.getSampleSize());
-        existingForm.setLacquers(updatedForm.getLacquers());
-        existingForm.setCharacteristics(updatedForm.getCharacteristics());
         existingForm.setQaExecutive(updatedForm.getQaExecutive());
         existingForm.setQaSignature(updatedForm.getQaSignature());
         existingForm.setProductionOperator(updatedForm.getProductionOperator());
@@ -161,6 +180,29 @@ public class InspectionFormService {
         existingForm.setReviewedAt(updatedForm.getReviewedAt());
         existingForm.setReviewedBy(updatedForm.getReviewedBy());
         
+        // Update fields specific to the new model
+        existingForm.setMcNo(updatedForm.getMcNo());
+        existingForm.setScope(updatedForm.getScope());
+        existingForm.setTitle(updatedForm.getTitle());
+        existingForm.setFormType(updatedForm.getFormType());
+        
+        // Update the tableData based on form type
+        if (updatedForm.getFormType() == InspectionForm.FormType.COATING) {
+            // Handle lacquers data if present
+            if (updatedForm.getTableData() != null) {
+                existingForm.setTableData(updatedForm.getTableData());
+            }
+        } else if (updatedForm.getFormType() == InspectionForm.FormType.PRINTING) {
+            // Handle inks data if present
+            if (updatedForm.getTableData() != null) {
+                existingForm.setTableData(updatedForm.getTableData());
+            }
+        }
+        
+        // Update characteristics
+        if (updatedForm.getCharacteristics() != null) {
+            existingForm.setCharacteristics(updatedForm.getCharacteristics());
+        }
 
         return inspectionFormRepository.save(existingForm);
     }

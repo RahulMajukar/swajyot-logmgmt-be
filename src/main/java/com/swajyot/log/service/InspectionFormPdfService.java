@@ -2,8 +2,11 @@ package com.swajyot.log.service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -29,9 +32,7 @@ import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.itextpdf.layout.properties.VerticalAlignment;
-import com.swajyot.log.model.Characteristic;
 import com.swajyot.log.model.InspectionForm;
-import com.swajyot.log.model.Lacquer;
 
 @Service
 public class InspectionFormPdfService {
@@ -61,9 +62,17 @@ public class InspectionFormPdfService {
 
         addHeader(document, form, fontBold);
         addHeaderInfo(document, form, font, fontBold);
-        addLacquerTable(document, form, font, fontBold);
+        
+        // Add appropriate table based on form type
+        if (form.getFormType() == InspectionForm.FormType.COATING) {
+            addLacquerTable(document, form, font, fontBold);
+        } else if (form.getFormType() == InspectionForm.FormType.PRINTING) {
+            addInkTable(document, form, font, fontBold);
+        }
+        
         addCharacteristicsTable(document, form, font, fontBold);
         addSignatureSection(document, form, font, fontBold);
+        
         // Add username at bottom of the PDF
         String generatedTime = java.time.LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
@@ -74,8 +83,6 @@ public class InspectionFormPdfService {
                 .setMarginTop(10);
 
         document.add(usernameFooter);
-
-
 
         document.close();
         return baos.toByteArray();
@@ -99,7 +106,7 @@ public class InspectionFormPdfService {
         headerTable.addCell(docInfoCell);
 
         // Column 2: Title
-        Table titleTable = createTitleTable(fontBold);
+        Table titleTable = createTitleTable(form, fontBold);
         Cell titleCell = new Cell()
                 .add(titleTable)
                 .setBorder(Border.NO_BORDER)
@@ -114,7 +121,7 @@ public class InspectionFormPdfService {
             logo = new Image(ImageDataFactory.create(resource.getInputStream().readAllBytes()));
         } catch (Exception e) {
             byte[] placeholder = Base64.getDecoder().decode(
-                    "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAIAAAD/gAIDAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NTkzRTlDQkUyMEU5MTFFQTk4RkNBRkJDODVCRTZCODMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NTkzRTlDQkYyMEU5MTFFQTk4RkNBRkJDODVCRTZCODMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo1OTNFOUNCQzIwRTkxMUVBOThGQ0FGQkM4NUJFNkI4MyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo1OTNFOUNCRDIwRTkxMUVBOThGQ0FGQkM4NUJFNkI4MyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PpR4Hs4AAAgISURBVHja7JxrbBRVFMfPnd3Z3S7d0pWWbYEi5VGMWAPxAZgoBsLDGISoRIN8IcaYKJ+MSvxgCD7wQwkJMTHRRGIk8YMJGk0kBIwvSDRCRMFAIgYUaAHb0hf7nN0ZzwxndnZ3Znfb6ba7c+C07cydu3vv/57//5x7Z2dNQggMx8IyTGAYtjBsYdjCsIVhC8MWhi0MWxi2MGxh2MKwhWELw9Yw1m/O/Q8tCyYzRGmNDaFQMDyQSuA4Dviv1BobAMdR39d1xDl3HOq6jmVNcM1fsdpaIgQIQQD5f5ybpYfRUCXTnE6nwHEyU2/JskgTQizLEkIEQRAEQRRFnudr7TEfQUF8JEl0Y5qZCDAGRifBp8rGRgXgNJUa4ZKlGK4Mm2dnWf1Q30VFAZqYikSOKoqqquGwlP8eRcQDaiiKarooBIDU1NQtXBiBJ0pUgJd7dRtlZQVwoQQRCvE8D/C6LsU1Lpu6D3A6nYbfG24QQjRNczgc+eVcVKLJ9wJSoWoaQC5aDYWigXUcL8t6NBp2OADPcznAo7RFIpFYLOZwOEzWa+DLTIJlZCSJPP5YcLYdXVYUzYz5KQfTGhoa7rrrruXLl4dCIT6vB2nLqxcfPnzY4XDMnDmTZxaVp6xlyGxRIqyUWM37UPkMiouyzJZjwc5SAyGkqmogEFixYsXZs2e//vprmyfzgBgIBJLJZHt7O0+ZYEUd/Pju6JBVNZ9FZctR/Lnvn3PZKQRnwTxDsJlM5vHHH+/r6/v6669nzJhhcXIFYrt27XrooYduvvlmi0t46Rlf5aZ7TU1NLpfL5XK5XE6n0+l0u9yiKAqiwPN8JpPq7e21Xu/sHwwN9RA1BKPBT4lrGlJVVVGUTCaTSCQGBgb6+vquX7/e39//2GOP9fb2fvXVV1OnTrUYzOXLl7/88st9+/ZZXMJLr3rNQ6FQU1NTe3t7W1vblClTmpubXS7XwEBU06QTJ46LSqdlcjfbR2CUPXsufXju8kBU5ngfPcUYERFtMElJDdHfTU1Nd9xxx6pVq7xe75YtW1577bXe3t6vvvrK7/fbOhRCyJYtWzZs2DA4ONjS0mIN3lJ8M6yt7e3tXbZs2Z133mm4UT7uTgYG0q9/8HXw/OnQgFf3+yBeIIXfGCf6FI2mqaZpiURiYGCAYqS72Lx58zPPPNPR0XHo0KG5c+dajOaLL75YuHDha6+9Zt2DJcs1TnS5XAsWLJg+fTohJJVKaZrW19d38eJFnuc9Hk9zc7PP5+N5LpWSXn75vS++unH8ZPrqNYUQJxUZzLVYVBcZGJEkSZKkdDqdTCYlSRoaGlIUJZ1O9/T0NDY2iqLY2dnZ1NRk8SDPnj27cePGl156ieOsXUMr9TqkiGR0Op3zrwk6nU6fz+f3+1taWnw+HyFEVbWvvz31ye7rv/xGYrEoz1MwR3wDwJFEMjk0NBSJRPr7+3/77bdLly4dOXLkp59+2r9//+HDh48dO3bhwoXVq1fbOk44HH7xxRfXrVvX0dFRJnhLzUKCINBhNZvNZrPZbDZL3a6RSCSRSPh8Po/HI8syn0yqv1+JZLME+xxYP+RCoUVcEgQhEAjU1dX5/f729vahUEgURa/X29LS4vF4RFGMRCLP/vPi3r1777nnnvr6enunef/99+fNm9fa2lpO9pVWDiw0TUskEocOHfrhhx8OHDhw5syZeDweDodvv/32OXPmdHV1zZ8/f+bMme3t7YIgIISu/9GPEKqwABYuXLh79+6DBw8+8MADtk7T3d39zjvvbNu2rZyA5tDq0UfpvtFRo/0qPVAGYkYs3QIkSQoGgx6PR5ZlVVUDgUBXV1ddXd3DDz+8cOHCu+++e8aMGTSfvnz5w2eeebOvbwivbCgEcIvIQnSZInrHFFWmU4uyVF31OBRDqMbmfz737LPPvvnmm7bwOXfu3IoVK372iy/+Y7J9Q7VuM7bZ5KweFiCErHcZFoYtbGHYGpO/sQ17U1i2MGwNM9vCsDVsYdi6dU+djb3FGSPQmTaEEPiKgZ1xS3WZ3M3TYolWKpXq6ur66aefEokE5y+Hxd66kKqqtbW1W7duraurKzmLLOqWTrx1dHQcP358586dhw4dunbtWiQSoYcZxeUv9s0OwGqz2fZAINCazWZDodCePXs2bdp0/vz5wf8M/q3QEYvF7r///s8++2zNmjXlxbJoQmiOAo7jes8ddXV1dUvCGlP0VFJEl1dXV1dXV1d3e/eePXs2bdp0/vz5wf8M/q3QEYvF7r///s8++2zNmjXlxbJoQmiOAo7jes8ddXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXU=");
+                    "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAIAAAD/gAIDAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NTkzRTlDQkUyMEU5MTFFQTk4RkNBRkJDODVCRTZCODMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NTkzRTlDQkYyMEU5MTFFQTk4RkNBRkJDODVCRTZCODMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo1OTNFOUNCQzIwRTkxMUVBOThGQ0FGQkM4NUJFNkI4MyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo1OTNFOUNCRDIwRTkxMUVBOThGQ0FGQkM4NUJFNkI4MyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PpR4Hs4AAAgISURBVHja7JxrbBRVFMfPnd3Z3S7d0pWWbYEi5VGMWAPxAZgoBsLDGISoRIN8IcaYKJ+MSvxgCD7wQwkJMTHRRGIk8YMJGk0kBIwvSDRCRMFAIgYUaAHb0hf7nN0ZzwxndnZ3Znfb6ba7c+C07cydu3vv/57//5x7Z2dNQggMx8IyTGAYtjBsYdjCsIVhC8MWhi0MWxi2MGxh2MKwhWELw9Yw1m/O/Q8tCyYzRGmNDaFQMDyQSuA4Dviv1BobAMdR39d1xDl3HOq6jmVNcM1fsdpaIgQIQQD5f5ybpYfRUCXTnE6nwHEyU2/JskgTQizLEkIEQRAEQRRFnudr7TEfQUF8JEl0Y5qZCDAGRifBp8rGRgXgNJUa4ZKlGK4Mm2dnWf1Q30VFAZqYikSOKoqqquGwlP8eRcQDaiiKarooBIDU1NQtXBiBJ0pUgJd7dRtlZQVwoQQRCvE8D/C6LsU1Lpu6D3A6nYbfG24QQjRNczgc+eVcVKLJ9wJSoWoaQC5aDYWigXUcL8t6NBp2OADPcznAo7RFIpFYLOZwOEzWa+DLTIJlZCSJPP5YcLYdXVYUzYz5KQfTGhoa7rrrruXLl4dCIT6vB2nLqxcfPnzY4XDMnDmTZxaVp6xlyGxRIqyUWM37UPkMiouyzJZjwc5SAyGkqmogEFixYsXZs2e//vprmyfzgBgIBJLJZHt7O0+ZYEUd/Pju6JBVNZ9FZctR/Lnvn3PZKQRnwTxDsJlM5vHHH+/r6/v6669nzJhhcXIFYrt27XrooYduvvlmi0t46Rlf5aZ7TU1NLpfL5XK5XE6n0+l0u9yiKAqiwPN8JpPq7e21Xu/sHwwN9RA1BKPBT4lrGlJVVVGUTCaTSCQGBgb6+vquX7/e39//2GOP9fb2fvXVV1OnTrUYzOXLl7/88st9+/ZZXMJLr3rNQ6FQU1NTe3t7W1vblClTmpubXS7XwEBU06QTJ46LSqdlcjfbR2CUPXsufXju8kBU5ngfPcUYERFtMElJDdHfTU1Nd9xxx6pVq7xe75YtW1577bXe3t6vvvrK7/fbOhRCyJYtWzZs2DA4ONjS0mIN3lJ8M6yt7e3tXbZs2Z133mm4UT7uTgYG0q9/8HXw/OnQgFf3+yBeIIXfGCf6FI2mqaZpiURiYGCAYqS72Lx58zPPPNPR0XHo0KG5c+dajOaLL75YuHDha6+9Zt2DJcs1TnS5XAsWLJg+fTohJJVKaZrW19d38eJFnuc9Hk9zc7PP5+N5LpWSXn75vS++unH8ZPrqNYUQJxUZzLVYVBcZGJEkSZKkdDqdTCYlSRoaGlIUJZ1O9/T0NDY2iqLY2dnZ1NRk8SDPnj27cePGl156ieOsXUMr9TqkiGR0Op3zrwk6nU6fz+f3+1taWnw+HyFEVbWvvz31ye7rv/xGYrEoz1MwR3wDwJFEMjk0NBSJRPr7+3/77bdLly4dOXLkp59+2r9//+HDh48dO3bhwoXVq1fbOk44HH7xxRfXrVvX0dFRJnhLzUKCINBhNZvNZrPZbDZL3a6RSCSRSPh8Po/HI8syn0yqv1+JZLME+xxYP+RCoUVcEgQhEAjU1dX5/f729vahUEgURa/X29LS4vF4RFGMRCLP/vPi3r1777nnnvr6enunef/99+fNm9fa2lpO9pVWDiw0TUskEocOHfrhhx8OHDhw5syZeDweDodvv/32OXPmdHV1zZ8/f+bMme3t7YIgIISu/9GPEKqwABYuXLh79+6DBw8+8MADtk7T3d39zjvvbNu2rZyA5tDq0UfpvtFRo/0qPVAGYkYs3QIkSQoGgx6PR5ZlVVUDgUBXV1ddXd3DDz+8cOHCu+++e8aMGTSfvnz5w2eeebOvbwivbCgEcIvIQnSZInrHFFWmU4uyVF31OBRDqMbmfz737LPPvvnmm7bwOXfu3IoVK372iy/+Y7J9Q7VuM7bZ5KweFiCErHcZFoYtbGHYGpO/sQ17U1i2MGwNM9vCsDVsYdi6dU+djb3FGSPQmTaEEPiKgZ1xS3WZ3M3TYolWKpXq6ur66aefEokE5y+Hxd66kKqqtbW1W7duraurKzmLLOqWTrx1dHQcP358586dhw4dunbtWiQSoYcZxeUv9s0OwGqz2fZAINCazWZDodCePXs2bdp0/vz5wf8M/q3QEYvF7r///s8++2zNmjXlxbJoQmiOAo7jes8ddXV1dUvCGlP0VFJEl1dXV1dXV1d3e/eePXs2bdp0/vz5wf8M/q3QEYvF7r///s8++2zNmjXlxbJoQmiOAo7jes8ddXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXU=");
             logo = new Image(ImageDataFactory.create(placeholder));
         }
 
@@ -122,9 +129,6 @@ public class InspectionFormPdfService {
         logo.setWidth(UnitValue.createPercentValue(80));
         logo.setAutoScale(true);
         logo.setMargins(20,20,20,20);
-//        logo.setMarginTop(15);
-//        logo.setMarginBottom(15);
-
 
         Cell logoCell = new Cell()
                 .add(logo)
@@ -178,7 +182,7 @@ public class InspectionFormPdfService {
         table.addCell(valueCell);
     }
 
-    private Table createTitleTable(PdfFont fontBold) {
+    private Table createTitleTable(InspectionForm form, PdfFont fontBold) {
         Table titleTable = new Table(1)
                 .setWidth(UnitValue.createPercentValue(100))
                 .setMargin(0);
@@ -189,7 +193,6 @@ public class InspectionFormPdfService {
                 .setFontSize(COMPANY_NAME_FONT_SIZE)
                 .setMarginTop(20)
                 .setTextAlignment(TextAlignment.CENTER);
-
 
         Cell companyCell = new Cell()
                 .add(companyName)
@@ -230,8 +233,12 @@ public class InspectionFormPdfService {
                 .setPadding(4)
                 .setTextAlignment(TextAlignment.LEFT);
 
+        // Use the form's scope field
+        String scopeValue = form.getScope() != null ? form.getScope() : 
+            form.getFormType() == InspectionForm.FormType.COATING ? "AGI / DEC / COATING" : "AGI / DEC / PRINTING";
+        
         Cell scopeValueCell = new Cell()
-                .add(new Paragraph("AGI / DEC / COATING").setFontSize(CONTENT_FONT_SIZE))
+                .add(new Paragraph(scopeValue).setFontSize(CONTENT_FONT_SIZE))
                 .setBorder(SOLID_BORDER)
                 .setPadding(4)
                 .setTextAlignment(TextAlignment.CENTER);
@@ -256,9 +263,14 @@ public class InspectionFormPdfService {
                 .setPadding(4)
                 .setTextAlignment(TextAlignment.LEFT);
 
-        // Use the TITLE_FONT_SIZE for the main title text to ensure it's properly visible
+        // Use the form's title field
+        String titleValue = form.getTitle() != null ? form.getTitle() : 
+            form.getFormType() == InspectionForm.FormType.COATING ? 
+                "FIRST ARTICLE INSPECTION REPORT - COATING" : 
+                "FIRST ARTICLE INSPECTION REPORT - PRINTING";
+        
         Cell titleValueCell = new Cell()
-                .add(new Paragraph("FIRST ARTICLE INSPECTION REPORT - COATING")
+                .add(new Paragraph(titleValue)
                         .setFontSize(SMALL_FONT_SIZE)
                 .setPadding(4)
                 .setTextAlignment(TextAlignment.CENTER));
@@ -292,10 +304,19 @@ public class InspectionFormPdfService {
                 .setBorder(SOLID_BORDER).setPadding(3));
         col1.addCell(new Cell().add(new Paragraph(form.getProduct()))
                 .setBorder(SOLID_BORDER).setPadding(3));
-        col1.addCell(new Cell().add(new Paragraph("Size No.:").setFont(fontBold))
-                .setBorder(SOLID_BORDER).setPadding(3));
-        col1.addCell(new Cell().add(new Paragraph(form.getSizeNo()))
-                .setBorder(SOLID_BORDER).setPadding(3));
+        
+        // For the third row, display different content based on form type
+        if (form.getFormType() == InspectionForm.FormType.PRINTING && form.getMcNo() != null) {
+            col1.addCell(new Cell().add(new Paragraph("Customer:").setFont(fontBold))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+            col1.addCell(new Cell().add(new Paragraph(form.getCustomer()))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+        } else {
+            col1.addCell(new Cell().add(new Paragraph("Size No.:").setFont(fontBold))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+            col1.addCell(new Cell().add(new Paragraph(form.getSizeNo()))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+        }
 
         infoTable.addCell(new Cell().add(col1).setBorder(SOLID_BORDER).setPadding(0));
 
@@ -309,19 +330,51 @@ public class InspectionFormPdfService {
                 .setBorder(SOLID_BORDER).setPadding(3));
         col2.addCell(new Cell().add(new Paragraph(form.getVariant()))
                 .setBorder(SOLID_BORDER).setPadding(3));
+        
+        // For printing forms, add Size No. in the middle column
+        if (form.getFormType() == InspectionForm.FormType.PRINTING) {
+            col2.addCell(new Cell().add(new Paragraph("Size No.:").setFont(fontBold))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+            col2.addCell(new Cell().add(new Paragraph(form.getSizeNo()))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+        } else {
+            // Empty cells for coating forms
+            col2.addCell(new Cell().setBorder(SOLID_BORDER).setPadding(3));
+            col2.addCell(new Cell().setBorder(SOLID_BORDER).setPadding(3));
+        }
 
         infoTable.addCell(new Cell().add(col2).setBorder(SOLID_BORDER).setPadding(0));
 
         // Column 3
         Table col3 = new Table(2).setWidth(UnitValue.createPercentValue(100));
-        col3.addCell(new Cell().add(new Paragraph("Line No.:").setFont(fontBold))
-                .setBorder(SOLID_BORDER).setPadding(3));
-        col3.addCell(new Cell().add(new Paragraph(form.getLineNo()))
-                .setBorder(SOLID_BORDER).setPadding(3));
-        col3.addCell(new Cell().add(new Paragraph("Customer:").setFont(fontBold))
-                .setBorder(SOLID_BORDER).setPadding(3));
-        col3.addCell(new Cell().add(new Paragraph(form.getCustomer()))
-                .setBorder(SOLID_BORDER).setPadding(3));
+        
+        // For printing forms, first row is MC No.
+        if (form.getFormType() == InspectionForm.FormType.PRINTING && form.getMcNo() != null) {
+            col3.addCell(new Cell().add(new Paragraph("MC No.:").setFont(fontBold))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+            col3.addCell(new Cell().add(new Paragraph(form.getMcNo()))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+        } else {
+            col3.addCell(new Cell().add(new Paragraph("Line No.:").setFont(fontBold))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+            col3.addCell(new Cell().add(new Paragraph(form.getLineNo()))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+        }
+        
+        // Second row for column 3
+        if (form.getFormType() == InspectionForm.FormType.PRINTING) {
+            col3.addCell(new Cell().add(new Paragraph("Line No.:").setFont(fontBold))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+            col3.addCell(new Cell().add(new Paragraph(form.getLineNo()))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+        } else {
+            col3.addCell(new Cell().add(new Paragraph("Customer:").setFont(fontBold))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+            col3.addCell(new Cell().add(new Paragraph(form.getCustomer()))
+                    .setBorder(SOLID_BORDER).setPadding(3));
+        }
+        
+        // Sample size row is the same for both types
         col3.addCell(new Cell().add(new Paragraph("Sample Size:").setFont(fontBold))
                 .setBorder(SOLID_BORDER).setPadding(3));
         col3.addCell(new Cell().add(new Paragraph(form.getSampleSize()))
@@ -345,26 +398,30 @@ public class InspectionFormPdfService {
         addTableHeader(table, "Batch No.", fontBold);
         addTableHeader(table, "Expiry Date", fontBold);
 
-        if (form.getLacquers() != null) {
-            for (Lacquer lacquer : form.getLacquers()) {
-                if (lacquer.getName() == null || lacquer.getName().isEmpty()) {
+        if (form.getTableData() != null) {
+            for (Map<String, Object> lacquer : form.getTableData()) {
+                String name = (String) lacquer.get("name");
+                if (name == null || name.isEmpty()) {
                     continue;
                 }
+                
                 // S.No.
-                table.addCell(new Cell().add(new Paragraph(String.valueOf(lacquer.getId())))
+                Long id = ((Number) lacquer.get("id")).longValue();
+                table.addCell(new Cell().add(new Paragraph(String.valueOf(id)))
                         .setTextAlignment(TextAlignment.CENTER)
                         .setBorder(SOLID_BORDER)
                         .setPadding(3));
 
                 // Lacquer/Dye
-                table.addCell(new Cell().add(new Paragraph(lacquer.getName()))
+                table.addCell(new Cell().add(new Paragraph(name))
                         .setBorder(SOLID_BORDER)
                         .setPadding(3));
 
                 // Weight with appropriate unit
-                String unit = "Clear Extn".equals(lacquer.getName()) ? "kg" : "gm";
-                String weightValue = lacquer.getWeight() != null && !lacquer.getWeight().isEmpty()
-                        ? lacquer.getWeight() + " " + unit
+                String unit = "Clear Extn".equals(name) ? "kg" : "gm";
+                String weight = (String) lacquer.get("weight");
+                String weightValue = weight != null && !weight.isEmpty()
+                        ? weight + " " + unit
                         : "";
                 table.addCell(new Cell().add(new Paragraph(weightValue))
                         .setTextAlignment(TextAlignment.CENTER)
@@ -372,16 +429,103 @@ public class InspectionFormPdfService {
                         .setPadding(3));
 
                 // Batch No.
-                table.addCell(new Cell().add(new Paragraph(lacquer.getBatchNo() != null ? lacquer.getBatchNo() : ""))
+                String batchNo = (String) lacquer.get("batchNo");
+                table.addCell(new Cell().add(new Paragraph(batchNo != null ? batchNo : ""))
                         .setTextAlignment(TextAlignment.CENTER)
                         .setBorder(SOLID_BORDER)
                         .setPadding(3));
 
                 // Expiry Date
                 String expiryDate = "";
-                if (lacquer.getExpiryDate() != null) {
-                    expiryDate = lacquer.getExpiryDate().format(DATE_FORMATTER);
+                Object expiryDateObj = lacquer.get("expiryDate");
+                if (expiryDateObj != null) {
+                    if (expiryDateObj instanceof String) {
+                        expiryDate = (String) expiryDateObj;
+                    } else if (expiryDateObj instanceof LocalDate) {
+                        expiryDate = ((LocalDate) expiryDateObj).format(DATE_FORMATTER);
+                    } else if (expiryDateObj instanceof Map) {
+                        // Extract from map if needed
+                        Map<String, Object> dateMap = (Map<String, Object>) expiryDateObj;
+                        if (dateMap.containsKey("year") && dateMap.containsKey("month") && dateMap.containsKey("day")) {
+                            LocalDate date = LocalDate.of(
+                                ((Number) dateMap.get("year")).intValue(),
+                                ((Number) dateMap.get("month")).intValue(),
+                                ((Number) dateMap.get("day")).intValue()
+                            );
+                            expiryDate = date.format(DATE_FORMATTER);
+                        }
+                    }
                 }
+                
+                table.addCell(new Cell().add(new Paragraph(expiryDate))
+                        .setTextAlignment(TextAlignment.CENTER)
+                        .setBorder(SOLID_BORDER)
+                        .setPadding(3));
+            }
+        }
+        document.add(table);
+    }
+    
+    private void addInkTable(Document document, InspectionForm form, PdfFont font, PdfFont fontBold) {
+        document.add(new Paragraph("\n").setFontSize(3));
+
+        Table table = new Table(UnitValue.createPercentArray(new float[]{8, 30, 30, 32}))
+                .setWidth(UnitValue.createPercentValue(100))
+                .setFontSize(CONTENT_FONT_SIZE);
+
+        addTableHeader(table, "S.No.", fontBold);
+        addTableHeader(table, "Ink / Dye", fontBold);
+        addTableHeader(table, "Batch No.", fontBold);
+        addTableHeader(table, "Expiry Date", fontBold);
+
+        if (form.getTableData() != null) {
+            for (Map<String, Object> ink : form.getTableData()) {
+                String name = (String) ink.get("name");
+                if (name == null || name.isEmpty()) {
+                    continue;
+                }
+                
+                // S.No.
+                Long id = ((Number) ink.get("id")).longValue();
+                table.addCell(new Cell().add(new Paragraph(String.valueOf(id)))
+                        .setTextAlignment(TextAlignment.CENTER)
+                        .setBorder(SOLID_BORDER)
+                        .setPadding(3));
+
+                // Ink/Dye
+                table.addCell(new Cell().add(new Paragraph(name))
+                        .setBorder(SOLID_BORDER)
+                        .setPadding(3));
+
+                // Batch No.
+                String batchNo = (String) ink.get("batchNo");
+                table.addCell(new Cell().add(new Paragraph(batchNo != null ? batchNo : ""))
+                        .setTextAlignment(TextAlignment.CENTER)
+                        .setBorder(SOLID_BORDER)
+                        .setPadding(3));
+
+                // Expiry Date
+                String expiryDate = "";
+                Object expiryDateObj = ink.get("expiryDate");
+                if (expiryDateObj != null) {
+                    if (expiryDateObj instanceof String) {
+                        expiryDate = (String) expiryDateObj;
+                    } else if (expiryDateObj instanceof LocalDate) {
+                        expiryDate = ((LocalDate) expiryDateObj).format(DATE_FORMATTER);
+                    } else if (expiryDateObj instanceof Map) {
+                        // Extract from map if needed
+                        Map<String, Object> dateMap = (Map<String, Object>) expiryDateObj;
+                        if (dateMap.containsKey("year") && dateMap.containsKey("month") && dateMap.containsKey("day")) {
+                            LocalDate date = LocalDate.of(
+                                ((Number) dateMap.get("year")).intValue(),
+                                ((Number) dateMap.get("month")).intValue(),
+                                ((Number) dateMap.get("day")).intValue()
+                            );
+                            expiryDate = date.format(DATE_FORMATTER);
+                        }
+                    }
+                }
+                
                 table.addCell(new Cell().add(new Paragraph(expiryDate))
                         .setTextAlignment(TextAlignment.CENTER)
                         .setBorder(SOLID_BORDER)
@@ -406,8 +550,12 @@ public class InspectionFormPdfService {
                 .setBackgroundColor(HEADER_BG_COLOR)
                 .setPadding(3);
 
+        // Customize observation header text based on form type
+        String sampleReference = form.getFormType() == InspectionForm.FormType.COATING ? 
+                "As per Reference sample no. X-211\n" : "As per reference sample no. X-100\n";
+                
         Paragraph obsHeaderText = new Paragraph()
-                .add(new Text("As per Reference sample no. X-211\n").setFont(fontBold))
+                .add(new Text(sampleReference).setFont(fontBold))
                 .add(new Text("Observations").setFont(fontBold));
 
         obsHeader.add(obsHeaderText);
@@ -415,79 +563,91 @@ public class InspectionFormPdfService {
         addTableHeader(table, "Comments", fontBold);
 
         if (form.getCharacteristics() != null) {
-            for (Characteristic characteristic : form.getCharacteristics()) {
-                if (characteristic.getName() == null || characteristic.getName().isEmpty()) {
+            for (Map<String, Object> characteristic : form.getCharacteristics()) {
+                String name = (String) characteristic.get("name");
+                if (name == null || name.isEmpty()) {
                     continue; // Skip empty rows
                 }
 
                 // S.No.
-                table.addCell(new Cell().add(new Paragraph(String.valueOf(characteristic.getId())))
+                Long id = ((Number) characteristic.get("id")).longValue();
+                table.addCell(new Cell().add(new Paragraph(String.valueOf(id)))
                         .setTextAlignment(TextAlignment.CENTER)
                         .setBorder(SOLID_BORDER)
                         .setPadding(3));
 
                 // Characteristic
                 table.addCell(
-                        new Cell().add(new Paragraph(characteristic.getName()))
+                        new Cell().add(new Paragraph(name))
                                 .setBorder(SOLID_BORDER)
                                 .setPadding(3));
 
-                // Observations
-                if (characteristic.getId() == 6
-                        && "Coating Thickness".equals(characteristic.getName())) {
-                    // Special case for coating thickness with Body and Bottom
-                    Table thicknessTable = new Table(UnitValue.createPercentArray(new float[]{30, 70}))
+                // Handle different types of characteristics based on the name
+                if ((name.equals("Coating Thickness") && form.getFormType() == InspectionForm.FormType.COATING) ||
+                    (name.equals("Printing Position") && form.getFormType() == InspectionForm.FormType.PRINTING)) {
+                    
+                    // Special case for multi-value fields
+                    Table measurementTable = new Table(UnitValue.createPercentArray(new float[]{30, 70}))
                             .setWidth(UnitValue.createPercentValue(100));
 
-                    // Body row
-                    Cell bodyLabelCell = new Cell()
-                            .add(new Paragraph("Body").setFont(fontBold))
+                    // First row label and value
+                    String firstLabel = form.getFormType() == InspectionForm.FormType.COATING ? "Body" : "Vertical ± 1.0mm";
+                    Cell firstLabelCell = new Cell()
+                            .add(new Paragraph(firstLabel).setFont(fontBold))
                             .setTextAlignment(TextAlignment.CENTER)
                             .setBorderRight(SOLID_BORDER)
                             .setBorderBottom(SOLID_BORDER)
                             .setPadding(3)
                             .setHeight(15);
-                    thicknessTable.addCell(bodyLabelCell);
+                    measurementTable.addCell(firstLabelCell);
 
-                    Cell bodyValueCell = new Cell()
-                            .add(new Paragraph(characteristic.getBodyThickness() != null ? characteristic.getBodyThickness() : ""))
+                    String firstValue = (String)(form.getFormType() == InspectionForm.FormType.COATING ? 
+                            characteristic.get("bodyThickness") : characteristic.get("vertical"));
+                    Cell firstValueCell = new Cell()
+                            .add(new Paragraph(firstValue != null ? firstValue : ""))
                             .setTextAlignment(TextAlignment.CENTER)
                             .setBorderBottom(SOLID_BORDER)
                             .setPadding(3)
                             .setHeight(15);
-                    thicknessTable.addCell(bodyValueCell);
+                    measurementTable.addCell(firstValueCell);
 
-                    // Bottom row
-                    Cell bottomLabelCell = new Cell()
-                            .add(new Paragraph("Bottom").setFont(fontBold))
+                    // Second row label and value
+                    String secondLabel = form.getFormType() == InspectionForm.FormType.COATING ? "Bottom" : "Horizontal ± 1.0mm";
+                    Cell secondLabelCell = new Cell()
+                            .add(new Paragraph(secondLabel).setFont(fontBold))
                             .setTextAlignment(TextAlignment.CENTER)
                             .setBorderRight(SOLID_BORDER)
                             .setPadding(3)
                             .setHeight(15);
-                    thicknessTable.addCell(bottomLabelCell);
+                    measurementTable.addCell(secondLabelCell);
 
-                    Cell bottomValueCell = new Cell()
-                            .add(new Paragraph(characteristic.getBottomThickness() != null ? characteristic.getBottomThickness() : ""))
+                    String secondValue = (String)(form.getFormType() == InspectionForm.FormType.COATING ? 
+                            characteristic.get("bottomThickness") : characteristic.get("horizontal"));
+                    Cell secondValueCell = new Cell()
+                            .add(new Paragraph(secondValue != null ? secondValue : ""))
                             .setTextAlignment(TextAlignment.CENTER)
                             .setPadding(3)
                             .setHeight(15);
-                    thicknessTable.addCell(bottomValueCell);
+                    measurementTable.addCell(secondValueCell);
 
-                    // Add the thickness table to the main table
+                    // Add the measurement table to the main table
                     table.addCell(new Cell()
-                            .add(thicknessTable)
+                            .add(measurementTable)
                             .setBorder(SOLID_BORDER)
                             .setPadding(0));
                 } else {
+                    // Standard observation field
+                    String observation = (String) characteristic.get("observation");
                     table.addCell(new Cell()
-                            .add(new Paragraph(characteristic.getObservation() != null ? characteristic.getObservation() : ""))
+                            .add(new Paragraph(observation != null ? observation : ""))
                             .setBorder(SOLID_BORDER)
                             .setPadding(3));
                 }
 
                 // Comments
+                String comments = (String) characteristic.get("comments");
                 table.addCell(new Cell()
-                        .add(new Paragraph(characteristic.getComments() != null ? characteristic.getComments() : ""))
+                        .add(new Paragraph(comments != null ? comments : ""))
                         .setBorder(SOLID_BORDER)
                         .setPadding(3));
             }
@@ -592,18 +752,5 @@ public class InspectionFormPdfService {
                 .setBackgroundColor(HEADER_BG_COLOR)
                 .setBorder(SOLID_BORDER)
                 .setPadding(3));
-    }
-
-    private void addInfoRow(Table table, String label, String value, PdfFont fontBold) {
-        table.addCell(new Cell()
-                .add(new Paragraph(label).setFont(fontBold))
-                .setBorderRight(SOLID_BORDER)
-                .setBorderBottom(SOLID_BORDER)
-                .setPadding(3));
-        table.addCell(
-                new Cell()
-                        .add(new Paragraph(value != null ? value : ""))
-                        .setBorderBottom(SOLID_BORDER)
-                        .setPadding(3));
     }
 }

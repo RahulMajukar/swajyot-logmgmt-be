@@ -6,29 +6,36 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 @Entity
-@Table(name = "inspection_forms")
+@Table(name = "first_article_inspection_reports")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class InspectionForm {
+public class FirstArticleInspectionReport {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    private String unit = "AGI Speciality Glass Division";
+    
+    private String scope = "AGI / DEC / PRINTING";
+    
+    private String title = "FIRST ARTICLE INSPECTION REPORT - PRINTING";
+    
     @Column(nullable = false, unique = true)
     private String documentNo;
+   
+    private String revision;
     
-    private String issuanceNo;
+    private LocalDate effectiveDate;
     
-    private LocalDate issueDate;
-    
-    private LocalDate reviewedDate;
+    private LocalDate reviewedOn;
     
     private String page;
     
@@ -38,52 +45,43 @@ public class InspectionForm {
     
     private String issued;
     
-    private LocalDate inspectionDate;
-    
-    private String product;
-    
-    private String sizeNo;
+    private LocalDate reportDate;
     
     private String shift;
     
-    private String variant;
+    private String line;
     
-    private String lineNo;
+    // Product details
+    private String productName;
     
     private String customer;
     
-    private String sampleSize;
-    
-    // Add MC No field for printing forms
     private String mcNo;
     
-    // Add scope and title fields
-    private String scope;
-    private String title;
+    private String sampleSize;
     
-    // Generic JSON storage for table data
-    // This can store both lacquers and inks arrays
+    private String inkType;
+    
+    private String batchNo;
+    
+    private LocalDate expiryDate;
+    
+    // Inspection characteristics
     @Type(JsonBinaryType.class)
     @Column(columnDefinition = "jsonb")
-    private List<Map<String, Object>> tableData;
+    private List<Map<String, Object>> inspectionPoints;
     
-    // Generic JSON storage for characteristics
-    @Type(JsonBinaryType.class)
-    @Column(columnDefinition = "jsonb")
-    private List<Map<String, Object>> characteristics;
-    
-    private String qaExecutive;
-    
+    // QA and Production details
+    private String qaName;
     private String qaSignature;
     
-    private String productionOperator;
+    private String productionName;
+    private String productionSignature;
     
-    private String operatorSignature;
-    
-    private String finalApprovalTime;
+    private LocalDateTime inspectionTime;
     
     @Enumerated(EnumType.STRING)
-    private FormStatus status;
+    private ReportStatus status;
     
     private String submittedBy;
     
@@ -95,15 +93,14 @@ public class InspectionForm {
     
     private String comments;
     
-    // Field to indicate form type: COATING or PRINTING
     @Enumerated(EnumType.STRING)
-    private FormType formType;
+    private ProductionArea productionArea;
     
-    public enum FormType {
-        COATING, PRINTING
+    public enum ProductionArea {
+        COATING, PRINTING, BOTH
     }
     
-    public enum FormStatus {
+    public enum ReportStatus {
         DRAFT, SUBMITTED, APPROVED, REJECTED
     }
 }
