@@ -460,7 +460,7 @@ public class LineClearanceReportPdfService {
                         .setPadding(3));
 
                 // Check Point
-                String checkPointText = (String) checkPoint.get("checkPoint");
+                String checkPointText = (String) checkPoint.get("description");
                 table.addCell(new Cell()
                         .add(new Paragraph(checkPointText != null ? checkPointText : ""))
                         .setBorder(SOLID_BORDER)
