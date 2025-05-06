@@ -63,6 +63,11 @@ public class LineClearanceReportService {
         if (report.getStatus() == null) {
             report.setStatus(LineClearanceReport.ReportStatus.DRAFT);
         }
+        // Generate document number automatically if not provided
+        if (report.getDocumentNo() == null || report.getDocumentNo().isEmpty()) {
+            report.setDocumentNo(generateUniqueDocumentNumber());
+        }
+
         return lineClearanceReportRepository.save(report);
     }
 
@@ -152,5 +157,21 @@ public class LineClearanceReportService {
         // This could write to a separate audit log table
         // For now, we'll just log to console
         System.out.println("PDF for Line Clearance Report ID: " + id + " downloaded by: " + userName);
+    }
+    
+    /**     * Generates a unique document number in the format AGI-MS-<Month>-LCR-<id>
+     */
+    private String generateUniqueDocumentNumber() {
+        // Get current month in three-letter format (e.g., JAN, FEB)
+        String month = java.time.LocalDate.now().getMonth().toString().substring(0, 3);
+        
+        // Find the highest existing ID for the current month
+        String prefix = "AGI-MS-" + month + "-LCR-";
+        
+        // Query to find max ID with this prefix
+        Integer maxId = lineClearanceReportRepository.findMaxIdForPrefix(prefix);
+        int nextId = (maxId != null) ? maxId + 1 : 1;
+        
+        return prefix + nextId;
     }
 }

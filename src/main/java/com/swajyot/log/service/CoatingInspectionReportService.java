@@ -63,6 +63,11 @@ public class CoatingInspectionReportService {
         if (report.getStatus() == null) {
             report.setStatus(CoatingInspectionReport.ReportStatus.DRAFT);
         }
+        
+        // Generate document number automatically if not provided
+        if (report.getDocumentNo() == null || report.getDocumentNo().isEmpty()) {
+            report.setDocumentNo(generateUniqueDocumentNumber());
+        }
         return coatingInspectionReportRepository.save(report);
     }
 
@@ -152,5 +157,16 @@ public class CoatingInspectionReportService {
         // This could write to a separate audit log table
         // For now, we'll just log to console
         System.out.println("PDF for Coating Inspection Report ID: " + id + " downloaded by: " + userName);
+    }
+    
+    private String generateUniqueDocumentNumber() {
+        String month = java.time.LocalDate.now().getMonth().toString().substring(0, 3);
+        
+        String prefix = "AGI-MS-" + month + "-CIR-";
+        
+        Integer maxId = coatingInspectionReportRepository.findMaxIdForPrefix(prefix + "%");
+        int nextId = (maxId != null) ? maxId + 1 : 1;
+        
+        return prefix + nextId;
     }
 }

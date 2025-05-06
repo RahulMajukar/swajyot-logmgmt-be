@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import com.swajyot.log.model.LineClearanceReport;
 import com.swajyot.log.model.req.EmailRequest;
 import com.swajyot.log.service.EmailService;
-import com.swajyot.log.service.LineClearanceReportPdfService;
 import com.swajyot.log.service.LineClearanceReportService;
+import com.swajyot.log.service.pdf.LineClearanceReportPdfService;
 
 import java.time.LocalDate;
 import java.util.List;

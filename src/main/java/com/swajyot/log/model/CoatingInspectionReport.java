@@ -16,7 +16,7 @@ import java.util.Map;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CoatingInspectionReport {
+public class CoatingInspectionReport implements ReportHeader{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

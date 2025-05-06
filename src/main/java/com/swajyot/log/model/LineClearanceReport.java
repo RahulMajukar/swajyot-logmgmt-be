@@ -16,7 +16,7 @@ import java.util.Map;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class LineClearanceReport {
+public class LineClearanceReport  implements ReportHeader{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

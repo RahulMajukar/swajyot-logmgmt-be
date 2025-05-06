@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import com.swajyot.log.model.CoatingInspectionReport;
 import com.swajyot.log.model.req.EmailRequest;
 import com.swajyot.log.service.EmailService;
-import com.swajyot.log.service.CoatingInspectionReportPdfService;
+import com.swajyot.log.service.pdf.CoatingInspectionReportPdfService;
 import com.swajyot.log.service.CoatingInspectionReportService;
 
 import java.time.LocalDate;
