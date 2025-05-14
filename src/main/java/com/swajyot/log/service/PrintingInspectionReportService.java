@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-
+import java.util.UUID;
 @Service
 public class PrintingInspectionReportService {
 
@@ -66,6 +66,12 @@ public class PrintingInspectionReportService {
         // Set initial status to DRAFT
         if (report.getStatus() == null) {
             report.setStatus(PrintingInspectionReport.ReportStatus.DRAFT);
+        }
+        
+        // Auto-generate document_no if not provided
+        if (report.getDocumentNo() == null || report.getDocumentNo().trim().isEmpty()) {
+            String uniqueDocNo = "DOC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            report.setDocumentNo(uniqueDocNo);
         }
         return printingInspectionReportRepository.save(report);
     }
