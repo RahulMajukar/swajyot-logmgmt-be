@@ -25,7 +25,13 @@ public interface CoatingInspectionReportRepository extends JpaRepository<Coating
     
     List<CoatingInspectionReport> findByLineNo(String lineNo);
     
+//    @Query(value = "SELECT COALESCE(MAX(CAST(SUBSTRING(document_no, LENGTH(?1) + 1) AS INTEGER)), 0) " +
+//            "FROM coating_inspection_reports WHERE document_no LIKE CONCAT(?1, '%')", nativeQuery = true)
+//     Integer findMaxIdForPrefix(String prefix);
     @Query(value = "SELECT COALESCE(MAX(CAST(SUBSTRING(document_no, LENGTH(?1) + 1) AS INTEGER)), 0) " +
-            "FROM coating_inspection_reports WHERE document_no LIKE CONCAT(?1, '%')", nativeQuery = true)
-     Integer findMaxIdForPrefix(String prefix);
+            "FROM coating_inspection_reports " +
+            "WHERE document_no LIKE CONCAT(?1, '%') " +
+            "AND SUBSTRING(document_no, LENGTH(?1) + 1) ~ '^[0-9]+$'", nativeQuery = true)
+Integer findMaxIdForPrefix(String prefix);
+
 }

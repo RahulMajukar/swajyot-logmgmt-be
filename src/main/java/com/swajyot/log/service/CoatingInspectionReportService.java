@@ -76,10 +76,10 @@ public class CoatingInspectionReportService {
         CoatingInspectionReport existingReport = getReportById(id);
         
         // Only allow updates for reports in DRAFT or REJECTED status
-        if (existingReport.getStatus() != CoatingInspectionReport.ReportStatus.DRAFT 
-                && existingReport.getStatus() != CoatingInspectionReport.ReportStatus.REJECTED) {
-            throw new IllegalStateException("Cannot update a report that is already submitted or approved");
-        }
+//        if (existingReport.getStatus() != CoatingInspectionReport.ReportStatus.DRAFT 
+//                && existingReport.getStatus() != CoatingInspectionReport.ReportStatus.REJECTED) {
+//            throw new IllegalStateException("Cannot update a report that is already submitted or approved");
+//        }
         
         // Preserve the ID
         updatedReport.setId(id);
@@ -161,12 +161,16 @@ public class CoatingInspectionReportService {
     
     private String generateUniqueDocumentNumber() {
         String month = java.time.LocalDate.now().getMonth().toString().substring(0, 3);
-        
         String prefix = "AGI-MS-" + month + "-CIR-";
-        
-        Integer maxId = coatingInspectionReportRepository.findMaxIdForPrefix(prefix + "%");
+
+        if (prefix.isBlank()) {
+            throw new IllegalArgumentException("Prefix for document number cannot be blank.");
+        }
+
+        Integer maxId = coatingInspectionReportRepository.findMaxIdForPrefix(prefix);
         int nextId = (maxId != null) ? maxId + 1 : 1;
-        
+
         return prefix + nextId;
     }
+
 }

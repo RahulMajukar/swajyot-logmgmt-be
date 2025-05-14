@@ -79,10 +79,10 @@ public class IncomingQualityInspectionReportService {
         IncomingQualityInspectionReport existingReport = getReportById(id);
         
         // Only allow updates for reports in DRAFT or REJECTED status
-        if (existingReport.getStatus() != IncomingQualityInspectionReport.ReportStatus.DRAFT 
-                && existingReport.getStatus() != IncomingQualityInspectionReport.ReportStatus.REJECTED) {
-            throw new IllegalStateException("Cannot update a report that is already submitted or approved");
-        }
+//        if (existingReport.getStatus() != IncomingQualityInspectionReport.ReportStatus.DRAFT 
+//                && existingReport.getStatus() != IncomingQualityInspectionReport.ReportStatus.REJECTED) {
+//            throw new IllegalStateException("Cannot update a report that is already submitted or approved");
+//        }
         
         // Preserve the ID
         updatedReport.setId(id);

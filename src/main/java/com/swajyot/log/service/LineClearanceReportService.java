@@ -71,18 +71,39 @@ public class LineClearanceReportService {
         return lineClearanceReportRepository.save(report);
     }
 
+//    @Transactional
+//    public LineClearanceReport updateReport(Long id, LineClearanceReport updatedReport) {
+//        LineClearanceReport existingReport = getReportById(id);
+//        
+//        // Only allow updates for reports in DRAFT or REJECTED status
+//        if (existingReport.getStatus() != LineClearanceReport.ReportStatus.DRAFT 
+//                && existingReport.getStatus() != LineClearanceReport.ReportStatus.REJECTED) {
+//            throw new IllegalStateException("Cannot update a report that is already submitted or approved");
+//        }
+//        
+//        // Preserve the ID
+//        updatedReport.setId(id);
+//        
+//        return lineClearanceReportRepository.save(updatedReport);
+//    }
     @Transactional
     public LineClearanceReport updateReport(Long id, LineClearanceReport updatedReport) {
         LineClearanceReport existingReport = getReportById(id);
         
-        // Only allow updates for reports in DRAFT or REJECTED status
-        if (existingReport.getStatus() != LineClearanceReport.ReportStatus.DRAFT 
-                && existingReport.getStatus() != LineClearanceReport.ReportStatus.REJECTED) {
-            throw new IllegalStateException("Cannot update a report that is already submitted or approved");
-        }
-        
+        // Remove the status check to allow updates regardless of status
         // Preserve the ID
         updatedReport.setId(id);
+        
+        // Preserve audit trail information if it exists in the original report
+        if (existingReport.getSubmittedBy() != null) {
+            updatedReport.setSubmittedBy(existingReport.getSubmittedBy());
+            updatedReport.setSubmittedAt(existingReport.getSubmittedAt());
+        }
+        
+        if (existingReport.getReviewedBy() != null) {
+            updatedReport.setReviewedBy(existingReport.getReviewedBy());
+            updatedReport.setReviewedAt(existingReport.getReviewedAt());
+        }
         
         return lineClearanceReportRepository.save(updatedReport);
     }
