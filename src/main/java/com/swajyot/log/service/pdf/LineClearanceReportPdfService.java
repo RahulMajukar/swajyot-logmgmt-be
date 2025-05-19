@@ -348,7 +348,7 @@ public class LineClearanceReportPdfService {
         // Add production signature if available
         if (report.getProductionSignature() != null && !report.getProductionSignature().isEmpty()) {
             try {
-                ClassPathResource resource = new ClassPathResource("static/images/ProductionSign.png");
+                ClassPathResource resource = new ClassPathResource("static/images/OperatorSign.png");
                 Image productionSignImg = new Image(
                         ImageDataFactory.create(resource.getInputStream().readAllBytes()))
                         .scaleToFit(100, 30);
@@ -376,7 +376,7 @@ public class LineClearanceReportPdfService {
         // Add quality signature if available
         if (report.getQualitySignature() != null && !report.getQualitySignature().isEmpty()) {
             try {
-                ClassPathResource resource = new ClassPathResource("static/images/QualitySign.png");
+                ClassPathResource resource = new ClassPathResource("static/images/QASign.png");
                 Image qualitySignImg = new Image(
                         ImageDataFactory.create(resource.getInputStream().readAllBytes()))
                         .scaleToFit(100, 30);
