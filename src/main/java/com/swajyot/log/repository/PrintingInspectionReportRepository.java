@@ -3,7 +3,6 @@ package com.swajyot.log.repository;
 import com.swajyot.log.model.PrintingInspectionReport;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
 import java.time.LocalDate;
 import java.util.List;
 
@@ -25,4 +24,6 @@ public interface PrintingInspectionReportRepository extends JpaRepository<Printi
     List<PrintingInspectionReport> findByLineNo(String lineNo);
     
     List<PrintingInspectionReport> findByMachineNo(String machineNo);
+    
+    List<PrintingInspectionReport> findByDocumentNoStartingWith(String prefix);
 }

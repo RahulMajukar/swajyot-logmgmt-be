@@ -29,4 +29,6 @@ public interface IncomingQualityInspectionReportRepository extends JpaRepository
     List<IncomingQualityInspectionReport> findByProductReceivedDate(LocalDate receivedDate);
     
     List<IncomingQualityInspectionReport> findByDocumentNo(String documentNo);
+    
+    List<IncomingQualityInspectionReport> findByDocumentNoStartingWith(String prefix);
 }

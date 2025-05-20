@@ -65,7 +65,7 @@ public class LineClearanceReportService {
         }
         // Generate document number automatically if not provided
         if (report.getDocumentNo() == null || report.getDocumentNo().isEmpty()) {
-            report.setDocumentNo(generateUniqueDocumentNumber());
+            report.setDocumentNo(generateDocumentNumber());
         }
 
         return lineClearanceReportRepository.save(report);
@@ -182,17 +182,44 @@ public class LineClearanceReportService {
     
     /**     * Generates a unique document number in the format AGI-MS-<Month>-LCR-<id>
      */
-    private String generateUniqueDocumentNumber() {
-        // Get current month in three-letter format (e.g., JAN, FEB)
-        String month = java.time.LocalDate.now().getMonth().toString().substring(0, 3);
-        
-        // Find the highest existing ID for the current month
-        String prefix = "AGI-MS-" + month + "-LCR-";
-        
-        // Query to find max ID with this prefix
-        Integer maxId = lineClearanceReportRepository.findMaxIdForPrefix(prefix);
-        int nextId = (maxId != null) ? maxId + 1 : 1;
-        
-        return prefix + nextId;
+//    private String generateUniqueDocumentNumber() {
+//        // Get current month in three-letter format (e.g., JAN, FEB)
+//        String month = java.time.LocalDate.now().getMonth().toString().substring(0, 3);
+//        
+//        // Find the highest existing ID for the current month
+//        String prefix = "AGI-MS-" + month + "-LCR-";
+//        
+//        // Query to find max ID with this prefix
+//        Integer maxId = lineClearanceReportRepository.findMaxIdForPrefix(prefix);
+//        int nextId = (maxId != null) ? maxId + 1 : 1;
+//        
+//        return prefix + nextId;
+//    }
+    
+    private String generateDocumentNumber() {
+        String month = LocalDate.now().getMonth().toString(); // e.g., MAY
+        String prefix = "AGI-LCR-" + month + "-";
+
+        // Fetch all reports for current month to determine the next serial number
+        List<LineClearanceReport> reportsThisMonth =
+        		lineClearanceReportRepository.findByDocumentNoStartingWith(prefix);
+
+        // Find the max serial number used this month
+        int maxSerial = reportsThisMonth.stream()
+                .map(r -> {
+                    String[] parts = r.getDocumentNo().split("-");
+                    try {
+                        return Integer.parseInt(parts[parts.length - 1]);
+                    } catch (Exception e) {
+                        return 0; // fallback if parsing fails
+                    }
+                })
+                .max(Integer::compare)
+                .orElse(0);
+
+        int nextSerial = maxSerial + 1;
+        String paddedSerial = String.format("%03d", nextSerial); // 001, 002, etc.
+
+        return prefix + paddedSerial;
     }
 }

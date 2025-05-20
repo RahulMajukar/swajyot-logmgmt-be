@@ -37,7 +37,7 @@ public class DataInitializer {
             createUsers();
             
             // Create sample inspection forms
-            createInspectionForms();
+//            createInspectionForms();
             
             System.out.println("Sample data initialization complete!");
         };

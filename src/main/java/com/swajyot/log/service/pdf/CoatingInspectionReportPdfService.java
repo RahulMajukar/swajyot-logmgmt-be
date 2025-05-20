@@ -49,11 +49,11 @@ public class CoatingInspectionReportPdfService {
 		PdfWriter writer = new PdfWriter(baos);
 		PdfDocument pdf = new PdfDocument(writer);
 		Document document = new Document(pdf, PageSize.A4);
-		document.setMargins(15, 36, 15, 36); 
+		document.setMargins(15, 36, 15, 36);
 		PdfFont font = PdfFontFactory.createFont(StandardFonts.HELVETICA);
 		PdfFont fontBold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
 
-      PdfCommonComponents.addHeader(document, report, fontBold);
+		PdfCommonComponents.addHeader(document, report, fontBold);
 		addProductInfo(document, report, font, fontBold);
 		addCoatingDetailsTable(document, report, font, fontBold);
 		addCharacteristicsTable(document, report, font, fontBold);
@@ -150,78 +150,58 @@ public class CoatingInspectionReportPdfService {
 		document.add(infoTable);
 	}
 
-	private void addCoatingDetailsTable(Document document, CoatingInspectionReport report, PdfFont font,
-			PdfFont fontBold) {
-		document.add(new Paragraph("\n").setFontSize(3));
+	private void addCoatingDetailsTable(Document document, CoatingInspectionReport report, PdfFont font, PdfFont fontBold) {
+	    document.add(new Paragraph("\n").setFontSize(3));
 
-		Table table = new Table(UnitValue.createPercentArray(new float[] { 5, 25, 15, 15, 15, 25 }))
-				.setWidth(UnitValue.createPercentValue(100)).setFontSize(CONTENT_FONT_SIZE);
+	    Table table = new Table(UnitValue.createPercentArray(new float[]{5, 30, 20, 20, 25}))
+	            .setWidth(UnitValue.createPercentValue(100))
+	            .setFontSize(CONTENT_FONT_SIZE);
 
-		// Table headers
-		Cell slNoHeader = new Cell().add(new Paragraph("S.No.").setFont(fontBold)).setBackgroundColor(HEADER_BG_COLOR)
-				.setBorder(SOLID_BORDER).setPadding(3);
+	    // Table headers
+	    table.addHeaderCell(new Cell().add(new Paragraph("S.No.").setFont(fontBold))
+	            .setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(4).setTextAlignment(TextAlignment.CENTER));
 
-		Cell lacquerHeader = new Cell().add(new Paragraph("Lacquer / Type").setFont(fontBold))
-				.setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(3);
+	    table.addHeaderCell(new Cell().add(new Paragraph("Lacquer / Dye").setFont(fontBold))
+	            .setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(4));
 
-		Cell batchNoHeader = new Cell().add(new Paragraph("Batch No").setFont(fontBold))
-				.setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(3);
+	    table.addHeaderCell(new Cell().add(new Paragraph("Batch No.").setFont(fontBold))
+	            .setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(4));
 
-		Cell qtyHeader = new Cell().add(new Paragraph("Qty.").setFont(fontBold)).setBackgroundColor(HEADER_BG_COLOR)
-				.setBorder(SOLID_BORDER).setPadding(3);
+	    table.addHeaderCell(new Cell().add(new Paragraph("Qty.").setFont(fontBold))
+	            .setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(4));
 
-		Cell noOfPiecesHeader = new Cell().add(new Paragraph("No of Pieces").setFont(fontBold))
-				.setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(3);
+	    table.addHeaderCell(new Cell().add(new Paragraph("Expiry Date").setFont(fontBold))
+	            .setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(4));
 
-		Cell expiryDateHeader = new Cell().add(new Paragraph("Expiry Date").setFont(fontBold))
-				.setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(3);
+	    // Add each coating detail
+	    if (report.getCoatingDetails() != null && !report.getCoatingDetails().isEmpty()) {
+	        for (Map<String, Object> detail : report.getCoatingDetails()) {
+	            int id = ((Number) detail.getOrDefault("id", 0)).intValue();
+	            String lacquerType = (String) detail.getOrDefault("lacquerType", "");
+	            String batchNo = (String) detail.getOrDefault("batchNo", "");
+	            String quantity = (String) detail.getOrDefault("quantity", "");
+	            String expiryDate = (String) detail.getOrDefault("expiryDate", "");
 
-		table.addHeaderCell(slNoHeader);
-		table.addHeaderCell(lacquerHeader);
-		table.addHeaderCell(batchNoHeader);
-		table.addHeaderCell(qtyHeader);
-		table.addHeaderCell(noOfPiecesHeader);
-		table.addHeaderCell(expiryDateHeader);
+	            table.addCell(new Cell().add(new Paragraph(String.valueOf(id)))
+	                    .setTextAlignment(TextAlignment.CENTER).setBorder(SOLID_BORDER).setPadding(4));
 
-		// Add each coating detail
-		if (report.getCoatingDetails() != null && !report.getCoatingDetails().isEmpty()) {
-			for (Map<String, Object> detail : report.getCoatingDetails()) {
-				// S.No.
-				int id = ((Number) detail.getOrDefault("id", 0)).intValue();
-				table.addCell(new Cell().add(new Paragraph(String.valueOf(id))).setTextAlignment(TextAlignment.CENTER)
-						.setBorder(SOLID_BORDER).setPadding(3));
+	            table.addCell(new Cell().add(new Paragraph(lacquerType)).setBorder(SOLID_BORDER).setPadding(4));
+	            table.addCell(new Cell().add(new Paragraph(batchNo)).setBorder(SOLID_BORDER).setPadding(4));
+	            table.addCell(new Cell().add(new Paragraph(quantity)).setBorder(SOLID_BORDER).setPadding(4));
+	            table.addCell(new Cell().add(new Paragraph(expiryDate)).setBorder(SOLID_BORDER).setPadding(4));
+	        }
+	    } else {
+	        // Fill 5-column empty rows if no data
+	        for (int i = 0; i < 5; i++) {
+	            for (int j = 0; j < 5; j++) {
+	                table.addCell(new Cell().add(new Paragraph("")).setBorder(SOLID_BORDER).setPadding(4));
+	            }
+	        }
+	    }
 
-				// Lacquer/Type
-				String lacquerType = (String) detail.getOrDefault("lacquerType", "");
-				table.addCell(new Cell().add(new Paragraph(lacquerType)).setBorder(SOLID_BORDER).setPadding(3));
-
-				// Batch No
-				String batchNo = (String) detail.getOrDefault("batchNo", "");
-				table.addCell(new Cell().add(new Paragraph(batchNo)).setBorder(SOLID_BORDER).setPadding(3));
-
-				// Quantity
-				String quantity = (String) detail.getOrDefault("quantity", "");
-				table.addCell(new Cell().add(new Paragraph(quantity)).setBorder(SOLID_BORDER).setPadding(3));
-
-				// Number of Pieces
-				String pieces = (String) detail.getOrDefault("numberOfPieces", "");
-				table.addCell(new Cell().add(new Paragraph(pieces)).setBorder(SOLID_BORDER).setPadding(3));
-
-				// Expiry Date
-				String expiryDate = (String) detail.getOrDefault("expiryDate", "");
-				table.addCell(new Cell().add(new Paragraph(expiryDate)).setBorder(SOLID_BORDER).setPadding(3));
-			}
-		} else {
-			// Add empty rows if no details are provided
-			for (int i = 0; i < 7; i++) {
-				for (int j = 0; j < 6; j++) {
-					table.addCell(new Cell().add(new Paragraph("")).setBorder(SOLID_BORDER).setPadding(5));
-				}
-			}
-		}
-
-		document.add(table);
+	    document.add(table);
 	}
+
 
 	private void addCharacteristicsTable(Document document, CoatingInspectionReport report, PdfFont font,
 			PdfFont fontBold) {
@@ -230,151 +210,112 @@ public class CoatingInspectionReportPdfService {
 		Table table = new Table(UnitValue.createPercentArray(new float[] { 5, 30, 35, 30 }))
 				.setWidth(UnitValue.createPercentValue(100)).setFontSize(CONTENT_FONT_SIZE);
 
-		// Table headers
-		Cell slNoHeader = new Cell().add(new Paragraph("S.No.").setFont(fontBold)).setBackgroundColor(HEADER_BG_COLOR)
-				.setBorder(SOLID_BORDER).setPadding(3);
+		// Header row
+		table.addHeaderCell(new Cell().add(new Paragraph("S.No.").setFont(fontBold)).setBackgroundColor(HEADER_BG_COLOR)
+				.setBorder(SOLID_BORDER).setPadding(4).setTextAlignment(TextAlignment.CENTER));
 
-		Cell characteristicHeader = new Cell().add(new Paragraph("Characteristic").setFont(fontBold))
-				.setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(3);
+		table.addHeaderCell(new Cell().add(new Paragraph("Characteristic").setFont(fontBold))
+				.setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(4));
 
-		Cell observationsHeader = new Cell()
-				.add(new Paragraph("As per Reference/Specification/Observations").setFont(fontBold))
-				.setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(3)
-				.setTextAlignment(TextAlignment.CENTER);
+		table.addHeaderCell(
+				new Cell().add(new Paragraph("As per Reference sample no. X-211\nObservations").setFont(fontBold))
+						.setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER)
+						.setTextAlignment(TextAlignment.CENTER).setPadding(4));
 
-		Cell commentsHeader = new Cell().add(new Paragraph("Comments").setFont(fontBold))
-				.setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(3);
+		table.addHeaderCell(new Cell().add(new Paragraph("Comments").setFont(fontBold))
+				.setBackgroundColor(HEADER_BG_COLOR).setBorder(SOLID_BORDER).setPadding(4));
 
-		table.addHeaderCell(slNoHeader);
-		table.addHeaderCell(characteristicHeader);
-		table.addHeaderCell(observationsHeader);
-		table.addHeaderCell(commentsHeader);
+		// Predefined characteristics with their default values
+		String[][] defaultCharacteristics = { { "1", "Colour Shade", "232", "2323" },
+				{ "2", "Colour Height", "2332", "" }, 
+				{ "3", "Any Visual defect", "", "" }, 
+				{ "4", "MEK Test", "", "" },
+				{ "5", "Cross Cut Test (Tape Test)", "", "" }, 
+				{ "6", "Coating Thickness", "", "23" }, // Special row
+				{ "7", "Temperature", "", "" }, 
+				{ "8", "Viscosity", "", "" },
+				{ "9", "Batch Composition", "Clear Extn 3 Red Dye 2", "" } };
 
-		// Add characteristics data
-		if (report.getCharacteristics() != null && !report.getCharacteristics().isEmpty()) {
-			for (Map<String, Object> characteristic : report.getCharacteristics()) {
-				// S.No.
-				int id = ((Number) characteristic.getOrDefault("id", 0)).intValue();
-				table.addCell(new Cell().add(new Paragraph(String.valueOf(id))).setTextAlignment(TextAlignment.CENTER)
-						.setBorder(SOLID_BORDER).setPadding(3));
+		// Get actual characteristics from report
+		List<Map<String, Object>> characteristics = report.getCharacteristics();
 
-				// Characteristic
-				String characteristicName = (String) characteristic.getOrDefault("characteristic", "");
-				table.addCell(new Cell().add(new Paragraph(characteristicName)).setBorder(SOLID_BORDER).setPadding(3));
+		int tableRowIndex = 0;
 
-				// Observations
-				String observations = (String) characteristic.getOrDefault("observations", "");
-				table.addCell(new Cell().add(new Paragraph(observations)).setBorder(SOLID_BORDER).setPadding(3));
+		for (int i = 0; i < defaultCharacteristics.length; i++) {
+			String[] defaultRow = defaultCharacteristics[i];
 
-				// Comments
-				String comments = (String) characteristic.getOrDefault("comments", "");
-				table.addCell(new Cell().add(new Paragraph(comments)).setBorder(SOLID_BORDER).setPadding(3));
+			// Try to get actual data from report if available
+			Map<String, Object> actualRow = null;
+			if (characteristics != null && i < characteristics.size()) {
+				actualRow = characteristics.get(i);
 			}
-		} else {
-			// Add standard characteristics rows if none provided
-			// Color Shade
-			table.addCell(
-					new Cell().add(new Paragraph("1")).setTextAlignment(TextAlignment.CENTER).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph("Color Shade")).setBorder(SOLID_BORDER));
 
-			Cell colorShadeCell = new Cell().setBorder(SOLID_BORDER).setPadding(3);
+			String sNo = defaultRow[0];
+			String charName = actualRow != null ? (String) actualRow.getOrDefault("characteristic", defaultRow[1])
+					: defaultRow[1];
+			String observation = actualRow != null ? (String) actualRow.getOrDefault("observations", defaultRow[2])
+					: defaultRow[2];
+			String comment = actualRow != null ? (String) actualRow.getOrDefault("comments", defaultRow[3])
+					: defaultRow[3];
 
-			Table shadeTable = new Table(UnitValue.createPercentArray(new float[] { 50, 50 }))
-					.setWidth(UnitValue.createPercentValue(100));
+			// Special handling for Coating Thickness row (row 6)
+			if (i == 5) { // Index 5 = Row 6
+				// Get body and bottom observation values
+				String bodyObservation = "233";
+				String bottomObservation = "23";
 
-			shadeTable.addCell(new Cell().add(new Paragraph("Grade 1 :")).setBorder(SOLID_BORDER));
-			shadeTable
-					.addCell(new Cell().add(new Paragraph(report.getColorShade() != null ? report.getColorShade() : ""))
-							.setBorder(SOLID_BORDER));
+				if (actualRow != null) {
+					if (actualRow.containsKey("bodyObservations")) {
+						bodyObservation = (String) actualRow.get("bodyObservations");
+					}
+					if (actualRow.containsKey("bottomObservations")) {
+						bottomObservation = (String) actualRow.get("bottomObservations");
+					}
+				}
 
-			colorShadeCell.add(shadeTable);
-			table.addCell(colorShadeCell);
-			table.addCell(new Cell().setBorder(SOLID_BORDER));
+				// First sub-row: S.No, Characteristic, Body observation, Comments
+				table.addCell(new Cell(2, 1).add(new Paragraph(sNo)).setTextAlignment(TextAlignment.CENTER)
+						.setBorder(SOLID_BORDER).setPadding(4).setVerticalAlignment(VerticalAlignment.MIDDLE));
 
-			// Color Height
-			table.addCell(
-					new Cell().add(new Paragraph("2")).setTextAlignment(TextAlignment.CENTER).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph("Color Height")).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph(report.getColorHeight() != null ? report.getColorHeight() : ""))
-					.setBorder(SOLID_BORDER));
-			table.addCell(new Cell().setBorder(SOLID_BORDER));
+				table.addCell(new Cell(2, 1).add(new Paragraph(charName)).setBorder(SOLID_BORDER).setPadding(4)
+						.setVerticalAlignment(VerticalAlignment.MIDDLE));
 
-			// Visual Defect
-			table.addCell(
-					new Cell().add(new Paragraph("3")).setTextAlignment(TextAlignment.CENTER).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph("Any Visual defect")).setBorder(SOLID_BORDER));
-			table.addCell(
-					new Cell().add(new Paragraph(report.getVisualDefect() != null ? report.getVisualDefect() : ""))
-							.setBorder(SOLID_BORDER));
-			table.addCell(new Cell().setBorder(SOLID_BORDER));
+				// Create a nested table for the observation column
+				Table observationTable = new Table(UnitValue.createPercentArray(new float[] { 40, 60 }))
+						.setWidth(UnitValue.createPercentValue(100)).setMargin(0).setPadding(0);
 
-			// MEK Test
-			table.addCell(
-					new Cell().add(new Paragraph("4")).setTextAlignment(TextAlignment.CENTER).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph("MEK Test")).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph(report.getMekTest() != null ? report.getMekTest() : ""))
-					.setBorder(SOLID_BORDER));
-			table.addCell(new Cell().setBorder(SOLID_BORDER));
+				// Body row in nested table
+				observationTable.addCell(new Cell().add(new Paragraph("Body")).setBorder(SOLID_BORDER).setPadding(3)
+						.setTextAlignment(TextAlignment.CENTER).setFontSize(CONTENT_FONT_SIZE));
 
-			// Cross Cut Test
-			table.addCell(
-					new Cell().add(new Paragraph("5")).setTextAlignment(TextAlignment.CENTER).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph("Cross Cut Test (Tape Test)")).setBorder(SOLID_BORDER));
-			table.addCell(
-					new Cell().add(new Paragraph(report.getCrossCutTest() != null ? report.getCrossCutTest() : ""))
-							.setBorder(SOLID_BORDER));
-			table.addCell(new Cell().setBorder(SOLID_BORDER));
+				observationTable.addCell(new Cell().add(new Paragraph(bodyObservation)).setBorder(SOLID_BORDER)
+						.setPadding(3).setFontSize(CONTENT_FONT_SIZE));
 
-			// Coating Thickness
-			table.addCell(
-					new Cell().add(new Paragraph("6")).setTextAlignment(TextAlignment.CENTER).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph("Coating Thickness")).setBorder(SOLID_BORDER));
+				// Bottom row in nested table
+				observationTable.addCell(new Cell().add(new Paragraph("Bottom")).setBorder(SOLID_BORDER).setPadding(3)
+						.setTextAlignment(TextAlignment.CENTER).setFontSize(CONTENT_FONT_SIZE));
 
-			Cell thicknessCell = new Cell().setBorder(SOLID_BORDER).setPadding(3);
+				observationTable.addCell(new Cell().add(new Paragraph(bottomObservation)).setBorder(SOLID_BORDER)
+						.setPadding(3).setFontSize(CONTENT_FONT_SIZE));
 
-			Table thicknessTable = new Table(UnitValue.createPercentArray(new float[] { 30, 70 }))
-					.setWidth(UnitValue.createPercentValue(100));
+				// Add the nested table as a single cell
+				table.addCell(new Cell().add(observationTable).setBorder(SOLID_BORDER).setPadding(0));
 
-			thicknessTable.addCell(new Cell().add(new Paragraph("Body :")).setBorder(SOLID_BORDER));
-			thicknessTable.addCell(new Cell()
-					.add(new Paragraph(
-							report.getCoatingThicknessBody() != null ? report.getCoatingThicknessBody() : ""))
-					.setBorder(SOLID_BORDER));
+				// Comments cell with rowspan
+				table.addCell(new Cell(2, 1).add(new Paragraph(comment)).setBorder(SOLID_BORDER).setPadding(4)
+						.setVerticalAlignment(VerticalAlignment.MIDDLE));
 
-			thicknessTable.addCell(new Cell().add(new Paragraph("Bottom :")).setBorder(SOLID_BORDER));
-			thicknessTable.addCell(new Cell()
-					.add(new Paragraph(
-							report.getCoatingThicknessBottom() != null ? report.getCoatingThicknessBottom() : ""))
-					.setBorder(SOLID_BORDER));
+			} else {
+				// Regular rows - add all four cells normally
+				table.addCell(new Cell().add(new Paragraph(sNo)).setTextAlignment(TextAlignment.CENTER)
+						.setBorder(SOLID_BORDER).setPadding(4));
 
-			thicknessCell.add(thicknessTable);
-			table.addCell(thicknessCell);
-			table.addCell(new Cell().setBorder(SOLID_BORDER));
+				table.addCell(new Cell().add(new Paragraph(charName)).setBorder(SOLID_BORDER).setPadding(4));
 
-			// Temperature
-			table.addCell(
-					new Cell().add(new Paragraph("7")).setTextAlignment(TextAlignment.CENTER).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph("Temperature")).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph(report.getTemperature() != null ? report.getTemperature() : ""))
-					.setBorder(SOLID_BORDER));
-			table.addCell(new Cell().setBorder(SOLID_BORDER));
+				table.addCell(new Cell().add(new Paragraph(observation)).setBorder(SOLID_BORDER).setPadding(4));
 
-			// Viscosity
-			table.addCell(
-					new Cell().add(new Paragraph("8")).setTextAlignment(TextAlignment.CENTER).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph("Viscosity")).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph(report.getViscosity() != null ? report.getViscosity() : ""))
-					.setBorder(SOLID_BORDER));
-			table.addCell(new Cell().setBorder(SOLID_BORDER));
-
-			// Batch Composition
-			table.addCell(
-					new Cell().add(new Paragraph("9")).setTextAlignment(TextAlignment.CENTER).setBorder(SOLID_BORDER));
-			table.addCell(new Cell().add(new Paragraph("Batch Composition")).setBorder(SOLID_BORDER));
-			table.addCell(new Cell()
-					.add(new Paragraph(report.getBatchComposition() != null ? report.getBatchComposition() : ""))
-					.setBorder(SOLID_BORDER));
-			table.addCell(new Cell().setBorder(SOLID_BORDER));
+				table.addCell(new Cell().add(new Paragraph(comment)).setBorder(SOLID_BORDER).setPadding(4));
+			}
 		}
 
 		document.add(table);

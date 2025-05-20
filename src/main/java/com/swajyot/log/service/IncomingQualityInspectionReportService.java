@@ -71,8 +71,15 @@ public class IncomingQualityInspectionReportService {
         if (report.getStatus() == null) {
             report.setStatus(IncomingQualityInspectionReport.ReportStatus.DRAFT);
         }
+
+        // Generate document number if not already set
+        if (report.getDocumentNo() == null || report.getDocumentNo().isEmpty()) {
+            report.setDocumentNo(generateDocumentNumber());
+        }
+
         return reportRepository.save(report);
     }
+
 
     @Transactional
     public IncomingQualityInspectionReport updateReport(Long id, IncomingQualityInspectionReport updatedReport) {
@@ -227,4 +234,32 @@ public class IncomingQualityInspectionReportService {
         
         return (double) passedReports / reports.size() * 100.0;
     }
+    
+    private String generateDocumentNumber() {
+        String month = LocalDate.now().getMonth().toString(); // e.g., MAY
+        String prefix = "AGI-IQIR-" + month + "-";
+
+        // Fetch all reports for current month to determine the next serial number
+        List<IncomingQualityInspectionReport> reportsThisMonth =
+                reportRepository.findByDocumentNoStartingWith(prefix);
+
+        // Find the max serial number used this month
+        int maxSerial = reportsThisMonth.stream()
+                .map(r -> {
+                    String[] parts = r.getDocumentNo().split("-");
+                    try {
+                        return Integer.parseInt(parts[parts.length - 1]);
+                    } catch (Exception e) {
+                        return 0; // fallback if parsing fails
+                    }
+                })
+                .max(Integer::compare)
+                .orElse(0);
+
+        int nextSerial = maxSerial + 1;
+        String paddedSerial = String.format("%03d", nextSerial); // 001, 002, etc.
+
+        return prefix + paddedSerial;
+    }
+
 }

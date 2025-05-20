@@ -1,6 +1,8 @@
 package com.swajyot.log.controller;
 
 import com.swajyot.log.model.PrintingInspectionReport;
+import com.swajyot.log.model.req.EmailRequest;
+import com.swajyot.log.service.EmailService;
 import com.swajyot.log.service.PrintingInspectionReportPdfService;
 import com.swajyot.log.service.PrintingInspectionReportService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,9 @@ public class PrintingInspectionReportController {
 
     @Autowired
     private PrintingInspectionReportPdfService pdfService;
+    
+    @Autowired
+    private EmailService emailService;
 
     @GetMapping
     public ResponseEntity<List<PrintingInspectionReport>> getAllReports() {
@@ -109,6 +114,71 @@ public class PrintingInspectionReportController {
             return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
         } catch (IOException | RuntimeException e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Endpoint to send an email with the printing inspection report PDF attachment
+     */
+    @PostMapping("/{id}/email-pdf")
+    public ResponseEntity<Object> emailPdf(
+            @PathVariable Long id,
+            @RequestBody EmailRequest emailRequest) {
+        
+        try {
+            // Get the report by ID
+            PrintingInspectionReport report = service.getReportById(id);
+            
+            // Generate the PDF
+            byte[] pdfBytes = pdfService.generatePdf(report, "");
+            
+            // Send email with PDF attachment
+            emailService.sendEmailWithAttachment(
+                emailRequest.getTo(),
+                emailRequest.getSubject(),
+                emailRequest.getBody(),
+                pdfBytes,
+                "printing-inspection-report-" + id + ".pdf"
+            );
+            
+            return ResponseEntity.ok(Map.of("message", "Email sent successfully"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to send email: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Endpoint to send an email with the printing inspection report PDF attachment with userName
+     */
+    @PostMapping("/{id}/email-pdf/{userName}")
+    public ResponseEntity<Object> emailPdfWithUser(
+            @PathVariable Long id,
+            @PathVariable String userName,
+            @RequestBody EmailRequest emailRequest) {
+        
+        try {
+            // Get the report by ID
+            PrintingInspectionReport report = service.getReportById(id);
+            
+            // Generate the PDF with the userName
+            byte[] pdfBytes = pdfService.generatePdf(report, userName);
+            
+            // Send email with PDF attachment
+            emailService.sendEmailWithAttachment(
+                emailRequest.getTo(),
+                emailRequest.getSubject(),
+                emailRequest.getBody(),
+                pdfBytes,
+                "printing-inspection-report-" + id + ".pdf"
+            );
+            
+            return ResponseEntity.ok(Map.of("message", "Email sent successfully by " + userName));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to send email: " + e.getMessage()));
         }
     }
 

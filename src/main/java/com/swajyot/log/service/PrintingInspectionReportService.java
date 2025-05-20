@@ -5,7 +5,6 @@ import com.swajyot.log.repository.PrintingInspectionReportRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -67,30 +66,27 @@ public class PrintingInspectionReportService {
         if (report.getStatus() == null) {
             report.setStatus(PrintingInspectionReport.ReportStatus.DRAFT);
         }
-        
-        // Auto-generate document_no if not provided
+
+        // Auto-generate document_no using generateDocumentNumber() if not provided
         if (report.getDocumentNo() == null || report.getDocumentNo().trim().isEmpty()) {
-            String uniqueDocNo = "DOC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-            report.setDocumentNo(uniqueDocNo);
+            report.setDocumentNo(generateDocumentNumber());
         }
+
         return printingInspectionReportRepository.save(report);
     }
 
+
     @Transactional
     public PrintingInspectionReport updateReport(Long id, PrintingInspectionReport updatedReport) {
+        // Fetch the existing report to ensure it exists
         PrintingInspectionReport existingReport = getReportById(id);
-        
-        // Only allow updates for reports in DRAFT or REJECTED status
-        if (existingReport.getStatus() != PrintingInspectionReport.ReportStatus.DRAFT 
-                && existingReport.getStatus() != PrintingInspectionReport.ReportStatus.REJECTED) {
-            throw new IllegalStateException("Cannot update a report that is already submitted or approved");
-        }
-        
-        // Preserve the ID
-        updatedReport.setId(id);
-        
+
+        // Optionally: preserve any fields that should not be overwritten
+        updatedReport.setId(id); // ensure correct ID is used
+
         return printingInspectionReportRepository.save(updatedReport);
     }
+
 
     @Transactional
     public PrintingInspectionReport submitReport(Long id, String submittedBy) {
@@ -160,5 +156,32 @@ public class PrintingInspectionReportService {
     public void logPdfDownload(Long id, String userName) {
         // Implement logging logic here if needed
         System.out.println("PDF for Printing Inspection Report ID: " + id + " downloaded by: " + userName);
+    }
+    
+    private String generateDocumentNumber() {
+        String month = LocalDate.now().getMonth().toString(); // e.g., MAY
+        String prefix = "AGI-FAIRP-" + month + "-";
+
+        // Fetch all reports for current month to determine the next serial number
+        List<PrintingInspectionReport> reportsThisMonth =
+        		printingInspectionReportRepository.findByDocumentNoStartingWith(prefix);
+
+        // Find the max serial number used this month
+        int maxSerial = reportsThisMonth.stream()
+                .map(r -> {
+                    String[] parts = r.getDocumentNo().split("-");
+                    try {
+                        return Integer.parseInt(parts[parts.length - 1]);
+                    } catch (Exception e) {
+                        return 0; // fallback if parsing fails
+                    }
+                })
+                .max(Integer::compare)
+                .orElse(0);
+
+        int nextSerial = maxSerial + 1;
+        String paddedSerial = String.format("%03d", nextSerial); // 001, 002, etc.
+
+        return prefix + paddedSerial;
     }
 }

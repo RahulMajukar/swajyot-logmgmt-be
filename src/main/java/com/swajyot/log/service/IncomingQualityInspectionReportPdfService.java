@@ -250,8 +250,22 @@ public class IncomingQualityInspectionReportPdfService {
 		document.add(infoTable);
 	}
 
-	private Cell createLabelCell(String text, PdfFont font) {
-		return new Cell().add(new Paragraph(text).setFont(font)).setBorder(SOLID_BORDER).setPadding(4);
+//	private Cell createLabelCell(String text, PdfFont font) {
+//		return new Cell().add(new Paragraph(text).setFont(font)).setBorder(SOLID_BORDER).setPadding(4);
+//	}
+	
+	private Cell createLabelCell(String labelWithValue, PdfFont fontBold) {
+	    String[] parts = labelWithValue.split(":", 2);
+	    Paragraph paragraph = new Paragraph();
+
+	    if (parts.length == 2) {
+	        paragraph.add(new Text(parts[0] + ": ").setFont(fontBold));
+	        paragraph.add(new Text(parts[1].trim()));
+	    } else {
+	        paragraph.add(new Text(labelWithValue).setFont(fontBold));
+	    }
+
+	    return new Cell().add(paragraph).setBorder(SOLID_BORDER).setPadding(4);
 	}
 
 	private Cell createValueCell(String text) {

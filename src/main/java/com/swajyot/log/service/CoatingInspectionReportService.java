@@ -66,7 +66,7 @@ public class CoatingInspectionReportService {
         
         // Generate document number automatically if not provided
         if (report.getDocumentNo() == null || report.getDocumentNo().isEmpty()) {
-            report.setDocumentNo(generateUniqueDocumentNumber());
+            report.setDocumentNo(generateDocumentNumber());
         }
         return coatingInspectionReportRepository.save(report);
     }
@@ -159,18 +159,31 @@ public class CoatingInspectionReportService {
         System.out.println("PDF for Coating Inspection Report ID: " + id + " downloaded by: " + userName);
     }
     
-    private String generateUniqueDocumentNumber() {
-        String month = java.time.LocalDate.now().getMonth().toString().substring(0, 3);
-        String prefix = "AGI-MS-" + month + "-CIR-";
+    private String generateDocumentNumber() {
+        String month = LocalDate.now().getMonth().toString(); // e.g., MAY
+        String prefix = "AGI-FAIRC-" + month + "-";
 
-        if (prefix.isBlank()) {
-            throw new IllegalArgumentException("Prefix for document number cannot be blank.");
-        }
+        // Fetch all reports for current month to determine the next serial number
+        List<CoatingInspectionReport> reportsThisMonth =
+        		coatingInspectionReportRepository.findByDocumentNoStartingWith(prefix);
 
-        Integer maxId = coatingInspectionReportRepository.findMaxIdForPrefix(prefix);
-        int nextId = (maxId != null) ? maxId + 1 : 1;
+        // Find the max serial number used this month
+        int maxSerial = reportsThisMonth.stream()
+                .map(r -> {
+                    String[] parts = r.getDocumentNo().split("-");
+                    try {
+                        return Integer.parseInt(parts[parts.length - 1]);
+                    } catch (Exception e) {
+                        return 0; // fallback if parsing fails
+                    }
+                })
+                .max(Integer::compare)
+                .orElse(0);
 
-        return prefix + nextId;
+        int nextSerial = maxSerial + 1;
+        String paddedSerial = String.format("%03d", nextSerial); // 001, 002, etc.
+
+        return prefix + paddedSerial;
     }
 
 }

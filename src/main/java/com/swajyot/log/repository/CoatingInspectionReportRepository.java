@@ -1,6 +1,8 @@
 package com.swajyot.log.repository;
 
 import com.swajyot.log.model.CoatingInspectionReport;
+import com.swajyot.log.model.IncomingQualityInspectionReport;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -33,5 +35,7 @@ public interface CoatingInspectionReportRepository extends JpaRepository<Coating
             "WHERE document_no LIKE CONCAT(?1, '%') " +
             "AND SUBSTRING(document_no, LENGTH(?1) + 1) ~ '^[0-9]+$'", nativeQuery = true)
 Integer findMaxIdForPrefix(String prefix);
+    
+    List<CoatingInspectionReport> findByDocumentNoStartingWith(String prefix);
 
 }

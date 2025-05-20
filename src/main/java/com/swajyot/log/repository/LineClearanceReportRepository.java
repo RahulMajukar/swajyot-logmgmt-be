@@ -30,4 +30,6 @@ public interface LineClearanceReportRepository extends JpaRepository<LineClearan
     @Query(value = "SELECT COALESCE(MAX(CAST(SUBSTRING(document_no, LENGTH(?1) + 1) AS INTEGER)), 0) " +
             "FROM line_clearance_reports WHERE document_no LIKE CONCAT(?1, '%')", nativeQuery = true)
      Integer findMaxIdForPrefix(String prefix);
+    
+    List<LineClearanceReport> findByDocumentNoStartingWith(String prefix);
 }
